@@ -1,0 +1,26 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["libs/concord-core/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "A", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["concord_core"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "libs/concord-core/src"
+namespace_packages = true
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config --cov=concord_core --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["concord_core"]
