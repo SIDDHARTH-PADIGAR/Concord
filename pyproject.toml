@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 src = ["libs/concord-core/src"]
 
 [tool.ruff.lint]
@@ -15,6 +15,12 @@ strict = true
 mypy_path = "libs/concord-core/src"
 namespace_packages = true
 explicit_package_bases = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
