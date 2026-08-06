@@ -2,4 +2,6 @@ ruff>=0.9,<1.0
 mypy>=1.13,<2.0
 pytest>=8.3,<9.0
 pytest-cov>=6.0,<7.0
+pytest-asyncio>=0.24,<0.25
+fakeredis>=2.24,<3.0
 pre-commit>=4.0,<5.0

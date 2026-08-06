@@ -25,6 +25,7 @@ warn_required_dynamic_aliases = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+asyncio_mode = "auto"
 addopts = "-ra --strict-markers --strict-config --cov=concord_core --cov-report=term-missing"
 
 [tool.coverage.run]
