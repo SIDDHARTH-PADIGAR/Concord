@@ -30,5 +30,43 @@ jobs:
       - name: mypy
         run: mypy libs/concord-core/src
 
-      - name: pytest
+      - name: pytest (unit)
         run: pytest
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: concord
+          POSTGRES_PASSWORD: concord_dev_password
+          POSTGRES_DB: concord
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U concord"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev tooling
+        run: pip install -r requirements-dev.txt
+
+      - name: Install concord-core (editable)
+        run: pip install -e ./libs/concord-core
+
+      - name: pytest (integration)
+        env:
+          CONCORD_DB_HOST: localhost
+          CONCORD_DB_PORT: "5432"
+          CONCORD_DB_USER: concord
+          CONCORD_DB_PASSWORD: concord_dev_password
+          CONCORD_DB_NAME: concord
+        run: pytest -m integration -v
