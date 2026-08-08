@@ -155,6 +155,11 @@ below states the concrete condition that would justify picking it up.
   the complete fill history, which is simpler and avoids the added
   complexity of reconciling corrections that reference fills older than
   the last snapshot.
+- **Pending message reclaim (XCLAIM/XAUTOCLAIM)** — `FillIngestionConsumer`
+  currently leaves a failed message unacked and simply moves on; it does
+  not attempt to reclaim its own or another consumer's stuck pending
+  entries. Introduce once a worker crash-recovery test demonstrates
+  messages getting stuck pending long enough to matter.
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.
