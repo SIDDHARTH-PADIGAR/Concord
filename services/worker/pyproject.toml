@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "concord-worker"
+version = "0.1.0"
+description = "Deployable worker process: consumes Fill events from Redis Streams and persists them via concord-core."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/concord_worker"]

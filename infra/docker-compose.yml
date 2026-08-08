@@ -26,5 +26,24 @@ services:
       retries: 5
       start_period: 10s
 
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/docker/worker.Dockerfile
+    environment:
+      CONCORD_REDIS_HOST: redis
+      CONCORD_REDIS_PORT: 6379
+      CONCORD_DB_HOST: timescaledb
+      CONCORD_DB_PORT: 5432
+      CONCORD_DB_USER: concord
+      CONCORD_DB_PASSWORD: concord_dev_password
+      CONCORD_DB_NAME: concord
+      CONCORD_WORKER_CONSUMER_NAME: worker-1
+    depends_on:
+      redis:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+
 volumes:
   timescaledb_data:

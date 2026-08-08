@@ -21,6 +21,9 @@ jobs:
       - name: Install concord-core (editable)
         run: pip install -e ./libs/concord-core
 
+      - name: Install concord-worker (editable)
+        run: pip install -e ./services/worker
+
       - name: ruff format --check
         run: ruff format --check .
 
@@ -28,7 +31,7 @@ jobs:
         run: ruff check .
 
       - name: mypy
-        run: mypy libs/concord-core/src
+        run: mypy libs/concord-core/src services/worker/src
 
       - name: pytest (unit)
         run: pytest
@@ -70,6 +73,9 @@ jobs:
 
       - name: Install concord-core (editable)
         run: pip install -e ./libs/concord-core
+
+      - name: Install concord-worker (editable)
+        run: pip install -e ./services/worker
 
       - name: pytest (integration)
         env:
