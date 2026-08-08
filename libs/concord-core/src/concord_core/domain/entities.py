@@ -6,21 +6,14 @@ never a mutation of an existing record -- it is a new Fill event that
 references the original via `corrects_execution_id`.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from concord_core.domain.enums import Side, TradeStatus
+from concord_core.domain.temporal import require_utc
 from concord_core.domain.value_objects import Instrument
-
-
-def _require_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        raise ValueError("timestamp must be timezone-aware, got naive datetime")
-    if value.utcoffset() != timedelta(0):
-        raise ValueError(f"timestamp must be UTC, got offset {value.utcoffset()}")
-    return value
 
 
 class Trade(BaseModel):
@@ -42,7 +35,7 @@ class Trade(BaseModel):
     @field_validator("created_at")
     @classmethod
     def _created_at_is_utc(cls, value: datetime) -> datetime:
-        return _require_utc(value)
+        return require_utc(value)
 
 
 class Fill(BaseModel):
@@ -63,7 +56,7 @@ class Fill(BaseModel):
     @field_validator("executed_at")
     @classmethod
     def _executed_at_is_utc(cls, value: datetime) -> datetime:
-        return _require_utc(value)
+        return require_utc(value)
 
     @model_validator(mode="after")
     def _corrects_execution_id_matches_status(self) -> "Fill":
