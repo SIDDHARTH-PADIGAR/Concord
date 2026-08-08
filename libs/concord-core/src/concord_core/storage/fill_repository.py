@@ -16,6 +16,9 @@ ON CONFLICT (exchange_execution_id, executed_at) DO NOTHING
 
 _SELECT_BY_EXECUTION_ID_SQL = "SELECT * FROM fills WHERE exchange_execution_id = $1"
 _SELECT_BY_TRADE_ID_SQL = "SELECT * FROM fills WHERE trade_id = $1 ORDER BY executed_at"
+_SELECT_BY_INSTRUMENT_SQL = """
+SELECT * FROM fills WHERE symbol = $1 AND instrument_type = $2 ORDER BY executed_at
+"""
 
 
 def _row_to_fill(row: asyncpg.Record) -> Fill:
@@ -72,4 +75,10 @@ class FillRepository:
 
     async def get_by_trade_id(self, trade_id: str) -> list[Fill]:
         rows = await self._pool.fetch(_SELECT_BY_TRADE_ID_SQL, trade_id)
+        return [_row_to_fill(row) for row in rows]
+
+    async def get_by_instrument(self, instrument: Instrument) -> list[Fill]:
+        rows = await self._pool.fetch(
+            _SELECT_BY_INSTRUMENT_SQL, instrument.symbol, instrument.instrument_type.value
+        )
         return [_row_to_fill(row) for row in rows]

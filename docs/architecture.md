@@ -86,24 +86,25 @@ sequenceDiagram
 ```
 
 ## Repository layout
+
 concord/
 ├── services/
-│ ├── gateway/
-│ ├── worker/
-│ ├── reconciler/
-│ ├── reporter/
-│ └── replay/
+│   ├── gateway/
+│   ├── worker/
+│   ├── reconciler/
+│   ├── reporter/
+│   └── replay/
 ├── libs/
-│ └── concord-core/ # shared: domain models, config, metrics, logging
+│   └── concord-core/        # shared: domain models, config, metrics, logging
 ├── infra/
-│ ├── docker/
-│ └── docker-compose.yml
+│   ├── docker/
+│   └── docker-compose.yml
 ├── tests/
-│ ├── unit/
-│ └── integration/
+│   ├── unit/
+│   └── integration/
 ├── docs/
-│ ├── architecture.md
-│ └── diagrams/
+│   ├── architecture.md
+│   └── diagrams/
 ├── pyproject.toml
 └── README.md
 
@@ -147,6 +148,13 @@ below states the concrete condition that would justify picking it up.
 - **Intelligent scheduling** — introduce if fixed-interval scheduling
   proves wasteful, e.g. re-running reconciliation on positions with
   zero new fills since the last run.
+- **Incremental position computation (snapshot + fold-forward)** —
+  introduce if a load test shows full fill-history replay (the current
+  approach — see `PositionService.compute_position`) is too slow for a
+  given instrument's fill volume. Until then, every computation replays
+  the complete fill history, which is simpler and avoids the added
+  complexity of reconciling corrections that reference fills older than
+  the last snapshot.
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.

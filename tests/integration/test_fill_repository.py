@@ -85,3 +85,18 @@ async def test_get_by_trade_id_returns_all_fills_ordered_by_execution_time(
     fills = await repository.get_by_trade_id("TR-1")
 
     assert [f.exchange_execution_id for f in fills] == ["EX-1", "EX-2"]
+
+
+async def test_get_by_instrument_returns_all_fills_ordered_by_execution_time(
+    repository: FillRepository,
+) -> None:
+    early = _sample_fill("EX-1")
+    late = _sample_fill("EX-2").model_copy(
+        update={"executed_at": datetime(2026, 8, 5, 13, 0, 0, tzinfo=UTC)}
+    )
+    await repository.insert_fill(late)
+    await repository.insert_fill(early)
+
+    fills = await repository.get_by_instrument(early.instrument)
+
+    assert [f.exchange_execution_id for f in fills] == ["EX-1", "EX-2"]
