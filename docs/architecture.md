@@ -89,22 +89,22 @@ sequenceDiagram
 
 concord/
 ├── services/
-│   ├── gateway/
-│   ├── worker/
-│   ├── reconciler/
-│   ├── reporter/
-│   └── replay/
+│ ├── gateway/
+│ ├── worker/
+│ ├── reconciler/
+│ ├── reporter/
+│ └── replay/
 ├── libs/
-│   └── concord-core/        # shared: domain models, config, metrics, logging
+│ └── concord-core/ # shared: domain models, config, metrics, logging
 ├── infra/
-│   ├── docker/
-│   └── docker-compose.yml
+│ ├── docker/
+│ └── docker-compose.yml
 ├── tests/
-│   ├── unit/
-│   └── integration/
+│ ├── unit/
+│ └── integration/
 ├── docs/
-│   ├── architecture.md
-│   └── diagrams/
+│ ├── architecture.md
+│ └── diagrams/
 ├── pyproject.toml
 └── README.md
 
@@ -160,6 +160,12 @@ below states the concrete condition that would justify picking it up.
   not attempt to reclaim its own or another consumer's stuck pending
   entries. Introduce once a worker crash-recovery test demonstrates
   messages getting stuck pending long enough to matter.
+- **Concrete `StreetPositionSource`** — `ReconciliationService` currently
+  depends only on the `StreetPositionSource` Protocol; no real
+  implementation exists yet. We don't know whether street data will
+  arrive as a second simulated fill store, a FIX drop-copy feed, or a
+  file drop, and building the wrong one speculatively costs more than
+  waiting. Introduce once a concrete street data source is chosen.
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.
