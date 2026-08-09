@@ -77,3 +77,15 @@ def build_position(fills: Sequence[Fill]) -> Position:
     as_of = max(fill.executed_at for fill in fills)
     instrument = next(iter(instruments))
     return Position(instrument=instrument, quantity=quantity, as_of=as_of)
+
+
+def build_position_or_none(fills: Sequence[Fill]) -> Position | None:
+    """Same as build_position, but returns None instead of raising for
+    an empty fill list. Shared by every caller for whom "this
+    instrument has no fills yet" is an expected, valid outcome rather
+    than a caller error -- PositionService.compute_position and
+    StreetPositionSourceAdapter.get_position both rely on this.
+    """
+    if not fills:
+        return None
+    return build_position(fills)

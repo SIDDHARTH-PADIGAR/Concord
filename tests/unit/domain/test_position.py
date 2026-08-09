@@ -1,4 +1,4 @@
-"""Tests for Position and build_position (Fill -> Position aggregation).
+"""Tests for Position, build_position, and build_position_or_none.
 
 These protect the core reconciliation-relevant business logic: how a
 fill history -- including corrections and cancellations -- folds into
@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from concord_core.domain.entities import Fill
 from concord_core.domain.enums import InstrumentType, Side, TradeStatus
-from concord_core.domain.position import Position, build_position
+from concord_core.domain.position import Position, build_position, build_position_or_none
 from concord_core.domain.value_objects import Instrument
 
 AAPL = Instrument(symbol="AAPL", instrument_type=InstrumentType.EQUITY)
@@ -142,6 +142,15 @@ class TestBuildPosition:
         ]
         position = build_position(fills)
         assert position.quantity == Decimal("0")
+
+
+class TestBuildPositionOrNone:
+    def test_empty_fills_returns_none(self) -> None:
+        assert build_position_or_none([]) is None
+
+    def test_nonempty_fills_returns_same_result_as_build_position(self) -> None:
+        fills = [_fill("EX-1", Side.BUY, "100")]
+        assert build_position_or_none(fills) == build_position(fills)
 
 
 class TestPosition:

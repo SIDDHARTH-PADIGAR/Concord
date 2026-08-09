@@ -160,12 +160,21 @@ below states the concrete condition that would justify picking it up.
   not attempt to reclaim its own or another consumer's stuck pending
   entries. Introduce once a worker crash-recovery test demonstrates
   messages getting stuck pending long enough to matter.
-- **Concrete `StreetPositionSource`** — `ReconciliationService` currently
-  depends only on the `StreetPositionSource` Protocol; no real
-  implementation exists yet. We don't know whether street data will
-  arrive as a second simulated fill store, a FIX drop-copy feed, or a
-  file drop, and building the wrong one speculatively costs more than
-  waiting. Introduce once a concrete street data source is chosen.
+- **Migration tracking (e.g. alembic)** — every migration so far has
+  been an idempotent `CREATE TABLE IF NOT EXISTS`, safe to re-run in
+  full on a fresh dev volume. Introduce once a schema change needs to
+  alter an existing table with real data in it, rather than only ever
+  adding new tables — at that point "just re-run everything" stops
+  being safe.
+- **Unify FillRepository / StreetFillRepository** — these two classes
+  are structurally near-identical (same idempotent-insert pattern,
+  same query shapes, different table name). Introduce a shared,
+  table-parametrized implementation if a third similarly-shaped
+  repository is needed, or if a future schema change has to be applied
+  in both places and that duplication tax becomes visible in review
+  time. Not unified now: doing so would mean changing `FillRepository`'s
+  signature and the `FillSource` Protocol it satisfies, cascading into
+  every already-tested caller for the sake of symmetry alone.
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.

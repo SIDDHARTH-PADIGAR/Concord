@@ -3,7 +3,7 @@
 from typing import Protocol
 
 from concord_core.domain.entities import Fill
-from concord_core.domain.position import Position, build_position
+from concord_core.domain.position import Position, build_position_or_none
 from concord_core.domain.value_objects import Instrument
 
 
@@ -30,9 +30,7 @@ class PositionService:
         the instrument has never traded -- distinct from a zero position.
         """
         fills = await self._fills.get_by_instrument(instrument)
-        if not fills:
-            return None
-        return build_position(fills)
+        return build_position_or_none(fills)
 
     async def compute_and_snapshot(self, instrument: Instrument) -> Position | None:
         position = await self.compute_position(instrument)

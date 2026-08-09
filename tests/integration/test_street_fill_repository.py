@@ -1,0 +1,101 @@
+"""Integration tests for StreetFillRepository against a live TimescaleDB instance.
+
+Mirrors test_fill_repository.py -- same idempotency and query behavior,
+against the separate street_fills table.
+"""
+
+from datetime import UTC, datetime
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+
+from concord_core.config.settings import DatabaseSettings
+from concord_core.domain.entities import Fill
+from concord_core.domain.enums import InstrumentType, Side, TradeStatus
+from concord_core.domain.value_objects import Instrument
+from concord_core.storage.database import apply_migrations, create_pool
+from concord_core.storage.street_fill_repository import StreetFillRepository
+
+MIGRATIONS_DIR = Path(__file__).parents[2] / "infra" / "sql"
+
+pytestmark = pytest.mark.integration
+
+
+def _sample_fill(execution_id: str = "EX-1") -> Fill:
+    return Fill(
+        exchange_execution_id=execution_id,
+        trade_id="TR-1",
+        instrument=Instrument(symbol="AAPL", instrument_type=InstrumentType.EQUITY),
+        side=Side.BUY,
+        quantity=Decimal("100"),
+        price=Decimal("150.25"),
+        executed_at=datetime(2026, 8, 5, 12, 0, 0, tzinfo=UTC),
+        status=TradeStatus.NEW,
+    )
+
+
+@pytest.fixture
+async def repository():
+    settings = DatabaseSettings()
+    pool = await create_pool(settings)
+    await apply_migrations(pool, MIGRATIONS_DIR)
+    yield StreetFillRepository(pool)
+    async with pool.acquire() as conn:
+        await conn.execute("TRUNCATE street_fills")
+    await pool.close()
+
+
+async def test_insert_fill_returns_true_for_new_fill(repository: StreetFillRepository) -> None:
+    assert await repository.insert_fill(_sample_fill()) is True
+
+
+async def test_insert_fill_returns_false_for_duplicate_delivery(
+    repository: StreetFillRepository,
+) -> None:
+    fill = _sample_fill()
+    await repository.insert_fill(fill)
+    assert await repository.insert_fill(fill) is False
+
+
+async def test_get_by_execution_id_round_trips_fill(repository: StreetFillRepository) -> None:
+    fill = _sample_fill()
+    await repository.insert_fill(fill)
+    fetched = await repository.get_by_execution_id(fill.exchange_execution_id)
+    assert fetched == fill
+
+
+async def test_get_by_execution_id_returns_none_when_missing(
+    repository: StreetFillRepository,
+) -> None:
+    assert await repository.get_by_execution_id("does-not-exist") is None
+
+
+async def test_get_by_trade_id_returns_all_fills_ordered_by_execution_time(
+    repository: StreetFillRepository,
+) -> None:
+    early = _sample_fill("EX-1")
+    late = _sample_fill("EX-2").model_copy(
+        update={"executed_at": datetime(2026, 8, 5, 13, 0, 0, tzinfo=UTC)}
+    )
+    await repository.insert_fill(late)
+    await repository.insert_fill(early)
+
+    fills = await repository.get_by_trade_id("TR-1")
+
+    assert [f.exchange_execution_id for f in fills] == ["EX-1", "EX-2"]
+
+
+async def test_get_by_instrument_returns_all_fills_ordered_by_execution_time(
+    repository: StreetFillRepository,
+) -> None:
+    early = _sample_fill("EX-1")
+    late = _sample_fill("EX-2").model_copy(
+        update={"executed_at": datetime(2026, 8, 5, 13, 0, 0, tzinfo=UTC)}
+    )
+    await repository.insert_fill(late)
+    await repository.insert_fill(early)
+
+    fills = await repository.get_by_instrument(early.instrument)
+
+    assert [f.exchange_execution_id for f in fills] == ["EX-1", "EX-2"]
