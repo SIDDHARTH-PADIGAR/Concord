@@ -129,19 +129,35 @@ Dockerfile, no independent pyproject.toml.
 ## Benchmarks
 
 `benchmarks/` holds committed, timestamped output from the scripts in
-`tools/run_*_benchmark.py`. The first of these (`run_position_benchmark.py`)
-directly targets Decision 4: it measures `build_position`'s CPU cost as
-fill-history size grows, since that computation runs synchronously
-inside every async worker/reconciler process and blocks the event loop
-for its full duration. Results there are the evidence Decision 4 should
-be revisited (or confirmed) against, not further assumption.
+`tools/run_*_benchmark.py`.
 
-**Baseline (2026-08-10):** confirmed linear scaling (~10,000 fills ->
-~14.5ms mean, ~10x fill count -> ~10x latency, no superlinear growth).
-Decision 4 stands as-is -- no multiprocessing needed at this scale.
-Revisit if a real instrument's fill history reaches the order of
-100,000+ fills without snapshot fold-forward existing yet, since that
-would put a single `build_position` call in the ~150ms range.
+- **`run_position_benchmark.py`** targets Decision 4 directly: measures
+  `build_position`'s CPU cost as fill-history size grows, since that
+  computation runs synchronously inside every async worker/reconciler
+  process and blocks the event loop for its full duration.
+
+  **Baseline (2026-08-10):** confirmed linear scaling (~10,000 fills ->
+  ~14.5ms mean, ~10x fill count -> ~10x latency, no superlinear growth).
+  Decision 4 stands as-is -- no multiprocessing needed at this scale.
+  Revisit if a real instrument's fill history reaches the order of
+  100,000+ fills without snapshot fold-forward existing yet, since that
+  would put a single `build_position` call in the ~150ms range.
+
+- **`run_ingestion_benchmark.py`** measures the real I/O-bound pipeline:
+  Redis publish throughput and `FillIngestionConsumer`'s consume+persist
+  throughput end to end. This is the concrete "Load Harness" component
+  from the system diagram, and the evidence the Backpressure and
+  Batching Deferred Extension Points below are waiting on.
+
+  **Baseline (2026-08-10, 1000 fills):** publish 606 fills/sec (mean
+  1.647ms/fill); consume+persist 174 fills/sec (batch mean 57.459ms
+  per 10-fill batch, i.e. ~5.7ms/fill). Ingestion is the bottleneck,
+  not publish -- specifically `FillIngestionConsumer` inserting fills
+  into TimescaleDB one at a time, sequentially, within each batch,
+  rather than as a single batched INSERT. No action needed at this
+  scale (174 fills/sec is well above any load this project generates),
+  but this sharpens the Batching extension point below: if it's ever
+  triggered, batch the DB insert specifically, not the Redis read.
 
 ## Deferred extension points
 
@@ -153,24 +169,36 @@ below states the concrete condition that would justify picking it up.
 
 - **Batching** — introduce if profiling shows per-fill reconciliation
   invocation overhead (not the reconciliation math itself) dominates
-  worker throughput under load-test conditions.
+  worker throughput under load-test conditions. The 2026-08-10 ingestion
+  baseline already shows the sequential per-fill DB insert in
+  `FillIngestionConsumer` as the throughput bottleneck (174 fills/sec
+  vs. 606 fills/sec on publish) -- if batching becomes necessary, batch
+  that INSERT into a single statement per batch first, before touching
+  anything else.
+
 - **Debounce** — introduce if metrics show the same position being
   reconciled multiple times within a sub-second window during bursty
   fill activity, producing redundant work without changing the
   outcome.
+
 - **Backpressure** — introduce if consumer lag metrics show workers
   falling behind the fill stream under sustained load, and the load
   harness reproduces this reliably rather than as a one-off spike.
+  `run_ingestion_benchmark.py` is the tool to gather that evidence with.
+
 - **Prioritization** — introduce if we have multiple reconciliation
   classes with different SLAs (e.g., large-notional positions needing
   faster break detection) and evidence that FIFO processing causes
   SLA misses for the higher-priority class.
+
 - **Latency-threshold alerting** — introduce once we have a monitoring
   baseline for "normal" reconciliation latency and a defined SLA to
   alert against.
+
 - **Intelligent scheduling** — introduce if fixed-interval scheduling
   proves wasteful, e.g. re-running reconciliation on positions with
   zero new fills since the last run.
+
 - **Incremental position computation (snapshot + fold-forward)** —
   introduce if a load test shows full fill-history replay (the current
   approach — see `PositionService.compute_position`) is too slow for a
@@ -178,17 +206,20 @@ below states the concrete condition that would justify picking it up.
   the complete fill history, which is simpler and avoids the added
   complexity of reconciling corrections that reference fills older than
   the last snapshot.
+
 - **Pending message reclaim (XCLAIM/XAUTOCLAIM)** — `FillIngestionConsumer`
   currently leaves a failed message unacked and simply moves on; it does
   not attempt to reclaim its own or another consumer's stuck pending
   entries. Introduce once a worker crash-recovery test demonstrates
   messages getting stuck pending long enough to matter.
+
 - **Migration tracking (e.g. alembic)** — every migration so far has
   been an idempotent `CREATE TABLE IF NOT EXISTS`, safe to re-run in
   full on a fresh dev volume. Introduce once a schema change needs to
   alter an existing table with real data in it, rather than only ever
   adding new tables — at that point "just re-run everything" stops
   being safe.
+
 - **Unify FillRepository / StreetFillRepository** — these two classes
   are structurally near-identical (same idempotent-insert pattern,
   same query shapes, different table name). Introduce a shared,
@@ -198,12 +229,14 @@ below states the concrete condition that would justify picking it up.
   time. Not unified now: doing so would mean changing `FillRepository`'s
   signature and the `FillSource` Protocol it satisfies, cascading into
   every already-tested caller for the sake of symmetry alone.
+
 - **Streaming and replay-driven reconciliation triggers** — only the
   Scheduler/EOD adapter (`ReconciliationScheduler`) exists so far.
   Introduce a streaming trigger (reconciling an instrument immediately
   after its fill is ingested) once break-detection latency, not just
   correctness, becomes a real requirement; introduce a replay-driven
   trigger once the Replay Engine itself exists (not yet built).
+
 - **Street-side ingestion service** — `tools/seed_demo_data.py` inserts
   street fills directly into storage rather than through any ingestion
   path, since none exists. Introduce a real street ingestion service

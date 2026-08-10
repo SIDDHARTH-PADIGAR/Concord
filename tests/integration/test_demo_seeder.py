@@ -57,5 +57,5 @@ async def test_seed_demo_data_publishes_and_persists_against_real_infra(wiring) 
     consumed = await stream_client.read(STREAM, GROUP, "test-consumer", count=100, block_ms=100)
     assert len(consumed) == len(history.internal_fills)
 
-    persisted_street_fills = await street_repository.get_by_instrument(AAPL)
+    persisted_street_fills = await street_repository.get_by_trade_id("TR-DEMO")
     assert len(persisted_street_fills) == len(history.street_fills)
