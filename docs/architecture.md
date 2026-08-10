@@ -59,7 +59,8 @@ no knowledge of whether it was called by a live fill event, a
 scheduled EOD job, or the replay engine. Streaming, scheduled, and
 replay-driven reconciliation are three thin adapters over one engine —
 there is exactly one implementation of "does this position match the
-street," not three.
+street," not three. As of Milestone 3, only the Scheduler/EOD adapter
+(`ReconciliationScheduler`, deployed as `concord-reconciler`) exists.
 
 ## Data flow — single fill, happy path
 
@@ -175,6 +176,12 @@ below states the concrete condition that would justify picking it up.
   time. Not unified now: doing so would mean changing `FillRepository`'s
   signature and the `FillSource` Protocol it satisfies, cascading into
   every already-tested caller for the sake of symmetry alone.
+- **Streaming and replay-driven reconciliation triggers** — only the
+  Scheduler/EOD adapter (`ReconciliationScheduler`) exists so far.
+  Introduce a streaming trigger (reconciling an instrument immediately
+  after its fill is ingested) once break-detection latency, not just
+  correctness, becomes a real requirement; introduce a replay-driven
+  trigger once the Replay Engine itself exists (not yet built).
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.

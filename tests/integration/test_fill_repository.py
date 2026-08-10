@@ -100,3 +100,20 @@ async def test_get_by_instrument_returns_all_fills_ordered_by_execution_time(
     fills = await repository.get_by_instrument(early.instrument)
 
     assert [f.exchange_execution_id for f in fills] == ["EX-1", "EX-2"]
+
+
+async def test_get_distinct_instruments_returns_each_traded_instrument_once(
+    repository: FillRepository,
+) -> None:
+    await repository.insert_fill(_sample_fill("EX-1"))
+    await repository.insert_fill(_sample_fill("EX-2"))  # same instrument, different fill
+
+    instruments = await repository.get_distinct_instruments()
+
+    assert instruments == [Instrument(symbol="AAPL", instrument_type=InstrumentType.EQUITY)]
+
+
+async def test_get_distinct_instruments_returns_empty_list_when_no_fills(
+    repository: FillRepository,
+) -> None:
+    assert await repository.get_distinct_instruments() == []

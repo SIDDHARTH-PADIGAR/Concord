@@ -19,6 +19,7 @@ _SELECT_BY_TRADE_ID_SQL = "SELECT * FROM fills WHERE trade_id = $1 ORDER BY exec
 _SELECT_BY_INSTRUMENT_SQL = """
 SELECT * FROM fills WHERE symbol = $1 AND instrument_type = $2 ORDER BY executed_at
 """
+_SELECT_DISTINCT_INSTRUMENTS_SQL = "SELECT DISTINCT symbol, instrument_type FROM fills"
 
 
 def _row_to_fill(row: asyncpg.Record) -> Fill:
@@ -82,3 +83,10 @@ class FillRepository:
             _SELECT_BY_INSTRUMENT_SQL, instrument.symbol, instrument.instrument_type.value
         )
         return [_row_to_fill(row) for row in rows]
+
+    async def get_distinct_instruments(self) -> list[Instrument]:
+        rows = await self._pool.fetch(_SELECT_DISTINCT_INSTRUMENTS_SQL)
+        return [
+            Instrument(symbol=row["symbol"], instrument_type=InstrumentType(row["instrument_type"]))
+            for row in rows
+        ]

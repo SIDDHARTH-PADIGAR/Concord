@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "concord-reconciler"
+version = "0.1.0"
+description = "Deployable reconciliation worker: runs ReconciliationScheduler against real position and break storage."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/concord_reconciler"]

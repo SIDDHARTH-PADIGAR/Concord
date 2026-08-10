@@ -1,18 +1,18 @@
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["libs/concord-core/src", "services/worker/src"]
+src = ["libs/concord-core/src", "services/worker/src", "services/reconciler/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "A", "C4", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["concord_core", "concord_worker"]
+known-first-party = ["concord_core", "concord_worker", "concord_reconciler"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
-mypy_path = ["libs/concord-core/src", "services/worker/src"]
+mypy_path = ["libs/concord-core/src", "services/worker/src", "services/reconciler/src"]
 namespace_packages = true
 explicit_package_bases = true
 plugins = ["pydantic.mypy"]
@@ -33,8 +33,8 @@ asyncio_mode = "auto"
 markers = [
     "integration: requires a live TimescaleDB/Redis instance (see infra/docker-compose.yml)",
 ]
-addopts = "-ra --strict-markers --strict-config -m \"not integration\" --cov=concord_core --cov=concord_worker --cov-report=term-missing"
+addopts = "-ra --strict-markers --strict-config -m \"not integration\" --cov=concord_core --cov=concord_worker --cov=concord_reconciler --cov-report=term-missing"
 
 [tool.coverage.run]
 branch = true
-source = ["concord_core", "concord_worker"]
+source = ["concord_core", "concord_worker", "concord_reconciler"]

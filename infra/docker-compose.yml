@@ -45,5 +45,20 @@ services:
       timescaledb:
         condition: service_healthy
 
+  reconciler:
+    build:
+      context: ..
+      dockerfile: infra/docker/reconciler.Dockerfile
+    environment:
+      CONCORD_DB_HOST: timescaledb
+      CONCORD_DB_PORT: 5432
+      CONCORD_DB_USER: concord
+      CONCORD_DB_PASSWORD: concord_dev_password
+      CONCORD_DB_NAME: concord
+      CONCORD_RECONCILER_INTERVAL_SECONDS: 30
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
 volumes:
   timescaledb_data:

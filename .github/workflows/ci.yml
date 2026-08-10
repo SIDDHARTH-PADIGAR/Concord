@@ -24,6 +24,9 @@ jobs:
       - name: Install concord-worker (editable)
         run: pip install -e ./services/worker
 
+      - name: Install concord-reconciler (editable)
+        run: pip install -e ./services/reconciler
+
       - name: ruff format --check
         run: ruff format --check .
 
@@ -31,7 +34,7 @@ jobs:
         run: ruff check .
 
       - name: mypy
-        run: mypy libs/concord-core/src services/worker/src
+        run: mypy libs/concord-core/src services/worker/src services/reconciler/src
 
       - name: pytest (unit)
         run: pytest
@@ -76,6 +79,9 @@ jobs:
 
       - name: Install concord-worker (editable)
         run: pip install -e ./services/worker
+
+      - name: Install concord-reconciler (editable)
+        run: pip install -e ./services/reconciler
 
       - name: pytest (integration)
         env:
