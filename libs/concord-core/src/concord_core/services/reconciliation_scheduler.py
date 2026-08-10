@@ -51,6 +51,18 @@ class ReconciliationScheduler:
             event = await self._reconciler.reconcile_instrument(instrument)
             if event is not None:
                 events.append(event)
+                logger.info(
+                    "break event: instrument=%s status=%s break_id=%s difference=%s",
+                    instrument.symbol,
+                    event.status,
+                    event.break_id,
+                    event.difference,
+                )
+        logger.info(
+            "reconciliation pass complete: %d instrument(s) checked, %d break event(s) emitted",
+            len(instruments),
+            len(events),
+        )
         return events
 
     async def run_forever(self, stop_event: asyncio.Event, interval_seconds: float) -> None:
