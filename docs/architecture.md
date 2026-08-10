@@ -99,6 +99,7 @@ concord/
 │ └── concord-core/ # shared: domain models, config, metrics, logging
 ├── tools/
 │ └── seed_demo_data.py # dev CLI: seeds paired fill histories into a running stack
+├── benchmarks/ # committed, timestamped output from load/CPU benchmarks
 ├── infra/
 │ ├── docker/
 │ └── docker-compose.yml
@@ -124,6 +125,23 @@ Dockerfile, no independent pyproject.toml.
 | 3 | Position state model | Event-sourced (immutable fills + snapshots) | Replayability is a first-class requirement; we already have an immutable log in Redis Streams. Read-path complexity (snapshot + replay) is an accepted cost. |
 | 4 | Worker concurrency | Pure asyncio, horizontal scaling via consumer group membership | No multiprocessing until a benchmark proves the reconciliation math is CPU-bound. Optimization is driven by measurement, not assumption. |
 | 5 | Reconciliation invocation | Single engine, invocation-agnostic; streaming/scheduled/replay are adapters | The engine shouldn't know or care who invoked it. One implementation of the comparison logic, not duplicated per trigger type. |
+
+## Benchmarks
+
+`benchmarks/` holds committed, timestamped output from the scripts in
+`tools/run_*_benchmark.py`. The first of these (`run_position_benchmark.py`)
+directly targets Decision 4: it measures `build_position`'s CPU cost as
+fill-history size grows, since that computation runs synchronously
+inside every async worker/reconciler process and blocks the event loop
+for its full duration. Results there are the evidence Decision 4 should
+be revisited (or confirmed) against, not further assumption.
+
+**Baseline (2026-08-10):** confirmed linear scaling (~10,000 fills ->
+~14.5ms mean, ~10x fill count -> ~10x latency, no superlinear growth).
+Decision 4 stands as-is -- no multiprocessing needed at this scale.
+Revisit if a real instrument's fill history reaches the order of
+100,000+ fills without snapshot fold-forward existing yet, since that
+would put a single `build_position` call in the ~150ms range.
 
 ## Deferred extension points
 
