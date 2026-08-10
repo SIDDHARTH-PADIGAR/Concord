@@ -97,6 +97,8 @@ concord/
 │ └── replay/
 ├── libs/
 │ └── concord-core/ # shared: domain models, config, metrics, logging
+├── tools/
+│ └── seed_demo_data.py # dev CLI: seeds paired fill histories into a running stack
 ├── infra/
 │ ├── docker/
 │ └── docker-compose.yml
@@ -110,6 +112,8 @@ concord/
 └── README.md
 
 Monorepo, independently deployable services, one shared core library.
+`tools/` holds developer utilities, not deployable services -- no
+Dockerfile, no independent pyproject.toml.
 
 ## Frozen decisions
 
@@ -182,6 +186,11 @@ below states the concrete condition that would justify picking it up.
   after its fill is ingested) once break-detection latency, not just
   correctness, becomes a real requirement; introduce a replay-driven
   trigger once the Replay Engine itself exists (not yet built).
+- **Street-side ingestion service** — `tools/seed_demo_data.py` inserts
+  street fills directly into storage rather than through any ingestion
+  path, since none exists. Introduce a real street ingestion service
+  (mirroring the internal Gateway/Worker path) once street data needs
+  to arrive from something other than manual/demo seeding.
 
 None of these get a box in the system diagram until the triggering
 condition is observed and documented here as having occurred.
